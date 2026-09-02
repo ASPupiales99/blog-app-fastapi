@@ -83,9 +83,6 @@ class PostRepository:
         for field, value in update_obj.items():
             setattr(post, field, value)
 
-        self.db.add(post)
-        self.db.refresh(post)
-
         return post
 
     def delete_post(self, post: PostOrm) -> None:

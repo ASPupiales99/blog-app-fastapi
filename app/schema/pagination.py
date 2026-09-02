@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import Literal, Optional, List, TYPE_CHECKING
+from typing import Literal, Optional, List
 
 from pydantic import BaseModel
 
-if TYPE_CHECKING:
-    from .post import PostPublic
+from .post import PostPublic
 
 
 class Pagination(BaseModel):
@@ -18,4 +17,4 @@ class Pagination(BaseModel):
     order_by: Literal["id", "title"]
     direction: Literal["asc", "desc"]
     search: Optional[str] = None
-    items: List["PostPublic"]
+    items: List[PostPublic]

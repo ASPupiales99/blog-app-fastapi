@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
-if TYPE_CHECKING:
-    from .author import Author
-    from .tag import Tag
+from .author import Author
+from .tag import Tag
 
 
 class PostBase(BaseModel):
     title: str
     content: str
-    tags: Optional[List["Tag"]] = Field(default_factory=list)
-    author: Optional["Author"] = None
+    tags: Optional[List[Tag]] = Field(default_factory=list)
+    author: Optional[Author] = None
 
     model_config = ConfigDict(from_attributes=True)
 
