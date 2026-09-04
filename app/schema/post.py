@@ -38,7 +38,6 @@ class PostCreate(BaseModel):
     tags: List["Tag"] = Field(
         default_factory=list,
         description="List of tags associated with the post")
-    author: Optional["Author"] = None
 
     @field_validator("title")
     @classmethod
