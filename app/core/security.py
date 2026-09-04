@@ -13,6 +13,21 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
+credentials_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"}
+)
+
+
+def raise_expire_token():
+    return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired",
+                         headers={"WWW-Authenticate": "Bearer"})
+
+
+def raise_forbidden():
+    return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden", )
+
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -28,11 +43,6 @@ def decode_token(token: str) -> dict:
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"}
-    )
     try:
         payload = decode_token(token)
         subject: Optional[str] = payload.get("sub")
@@ -42,7 +52,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
         return {"email": subject, "username": username}
     except ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired",
-                            headers={"WWW-Authenticate": "Bearer"})
+        raise raise_expire_token()
     except InvalidTokenError:
         raise credentials_exception
