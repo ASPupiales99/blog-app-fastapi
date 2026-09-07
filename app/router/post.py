@@ -1,13 +1,14 @@
 from math import ceil
-from typing import Optional, Literal, List, Union
+from typing import Optional, Literal, List, Union, Annotated
 
-from fastapi import APIRouter, Query, Depends, Path, HTTPException, status
+from fastapi import APIRouter, Query, Depends, Path, HTTPException, status, UploadFile, File
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app.core.security import get_current_user
 from app.repository.post import PostRepository, get_post_repository
 from app.schema import PostPublic, PostSummary, PostCreate, PostUpdate
 from app.schema.pagination import Pagination
+from app.service.file_storage import save_uploaded_file
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
@@ -101,12 +102,21 @@ def get_post(
 
 @router.post("", response_model=PostPublic, response_description="Created post details",
              status_code=status.HTTP_201_CREATED)
-def create_post(post: PostCreate, repository: PostRepository = Depends(get_post_repository),
-                user=Depends(get_current_user)):
+def create_post(post: Annotated[PostCreate, Depends(PostCreate.as_form)],
+                repository: PostRepository = Depends(get_post_repository),
+                user=Depends(get_current_user), image: Optional[UploadFile] = File(None)):
+    saved = None
+
     try:
+
+        if image is not None:
+            saved = save_uploaded_file(image)
+
+        image_url = saved["url"] if saved else None
+
         new_post = repository.create_post(title=post.title, content=(post.content if post.content else ""),
                                           author=user,
-                                          tags=[tag.model_dump() for tag in post.tags])
+                                          tags=[tag.model_dump() for tag in post.tags], image_url=image_url)
         repository.db.commit()
         repository.db.refresh(new_post)
         return new_post

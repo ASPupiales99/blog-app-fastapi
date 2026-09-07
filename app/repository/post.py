@@ -62,12 +62,13 @@ class PostRepository:
 
         return self.db.execute(post_list).scalars().all()
 
-    def create_post(self, title: str, content: str, author: Optional[dict], tags: List[dict]) -> PostOrm:
+    def create_post(self, title: str, content: str, author: Optional[dict], tags: List[dict],
+                    image_url: str) -> PostOrm:
         author_obj = None
         if author:
             author_obj = self.author_repository.ensure_author(author['username'], author['email'])
 
-        post = PostOrm(title=title, content=content, author=author_obj)
+        post = PostOrm(title=title, content=content, author=author_obj, image_url=image_url)
 
         for tag in tags:
             tag_obj = self.tag_repository.ensure_tag(tag['name'])
