@@ -3,3 +3,4 @@ venv/
 .env
 blog.db
 .idea/*
+app/media/
