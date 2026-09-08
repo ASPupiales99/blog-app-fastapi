@@ -71,8 +71,13 @@ class PostRepository:
         post = PostOrm(title=title, content=content, author=author_obj, image_url=image_url)
 
         for tag in tags:
-            tag_obj = self.tag_repository.ensure_tag(tag['name'])
-            post.tags.append(tag_obj)
+            names = tag['name'].split(',')
+            for name in names:
+                name = name.strip().lower()
+                if not name:
+                    continue
+                tag_obj = self.tag_repository.ensure_tag(name)
+                post.tags.append(tag_obj)
 
         self.db.add(post)
         self.db.flush()
