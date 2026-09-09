@@ -4,7 +4,8 @@ from typing import Optional, Literal, List, Union, Annotated
 from fastapi import APIRouter, Query, Depends, Path, HTTPException, status, UploadFile, File
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
-from app.core.security import get_current_user
+from app.core.security import require_user, require_editor, require_admin
+from app.model import User
 from app.repository.post import PostRepository, get_post_repository
 from app.schema import PostPublic, PostSummary, PostCreate, PostUpdate
 from app.schema.pagination import Pagination
@@ -71,7 +72,8 @@ def get_posts_by_tags(
             min_length=1,
             max_length=10
         ),
-        repository: PostRepository = Depends(get_post_repository)
+        repository: PostRepository = Depends(get_post_repository),
+        _user: User = Depends(require_user)
 ):
     return repository.get_posts_by_tags(tags)
 
@@ -89,7 +91,8 @@ def get_post(
             default=True,
             description="Whether to include the content of the post"
         ),
-        repository: PostRepository = Depends(get_post_repository)
+        repository: PostRepository = Depends(get_post_repository),
+        _user: User = Depends(require_user)
 ):
     post = repository.get_post(post_id)
 
@@ -102,9 +105,12 @@ def get_post(
 
 @router.post("", response_model=PostPublic, response_description="Created post details",
              status_code=status.HTTP_201_CREATED)
-def create_post(post: Annotated[PostCreate, Depends(PostCreate.as_form)],
-                repository: PostRepository = Depends(get_post_repository),
-                user=Depends(get_current_user), image: Optional[UploadFile] = File(None)):
+def create_post(
+        post: Annotated[PostCreate, Depends(PostCreate.as_form)],
+        repository: PostRepository = Depends(get_post_repository),
+        image: Optional[UploadFile] = File(None),
+        editor: User = Depends(require_editor)
+):
     saved = None
 
     try:
@@ -115,7 +121,7 @@ def create_post(post: Annotated[PostCreate, Depends(PostCreate.as_form)],
         image_url = saved["url"] if saved else None
 
         new_post = repository.create_post(title=post.title, content=(post.content if post.content else ""),
-                                          author=user,
+                                          author=editor,
                                           tags=[tag.model_dump() for tag in post.tags], image_url=image_url)
         repository.db.commit()
         repository.db.refresh(new_post)
@@ -131,7 +137,7 @@ def create_post(post: Annotated[PostCreate, Depends(PostCreate.as_form)],
 @router.put("/{post_id}", response_model=PostPublic, response_description="Updated post details",
             response_model_exclude_none=True)
 def update_post(post_id: int, updated_data: PostUpdate, repository: PostRepository = Depends(get_post_repository),
-                user=Depends(get_current_user)):
+                _editor: User = Depends(require_editor)):
     post = repository.get_post(post_id)
 
     if not post:
@@ -150,7 +156,7 @@ def update_post(post_id: int, updated_data: PostUpdate, repository: PostReposito
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT,
                response_description="Post deleted successfully")
 def delete_post(post_id: int, repository: PostRepository = Depends(get_post_repository),
-                user=Depends(get_current_user)):
+                _admin: User = Depends(require_admin)):
     post_db = repository.get_post(post_id)
 
     if not post_db:

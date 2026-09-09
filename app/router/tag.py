@@ -1,7 +1,8 @@
 from fastapi import APIRouter, status, Depends, HTTPException, Query
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.core.security import get_current_user
+from app.core.security import require_editor, require_admin, require_user
+from app.model import User
 from app.repository.tag import get_tag_repository
 from app.schema.tag import TagPublic, TagCreate, TagUpdate
 
@@ -9,7 +10,7 @@ router = APIRouter(prefix="/tags", tags=["tags"])
 
 
 @router.post("", response_model=TagPublic, response_description="Tag created", status_code=status.HTTP_201_CREATED)
-def create_tag(tag: TagCreate, repository=Depends(get_tag_repository), user=Depends(get_current_user)):
+def create_tag(tag: TagCreate, repository=Depends(get_tag_repository), _editor: User = Depends(require_editor)):
     try:
         new_tag = repository.create_tag(name=tag.name)
         repository.db.commit()
@@ -41,7 +42,7 @@ def list_tags(
 
 
 @router.get("/popular")
-def get_popular_tag(repository=Depends(get_tag_repository), user=Depends(get_current_user)):
+def get_popular_tag(repository=Depends(get_tag_repository), _user: User = Depends(require_user)):
     row = repository.get_most_popular_tag()
 
     if not row:
@@ -52,7 +53,7 @@ def get_popular_tag(repository=Depends(get_tag_repository), user=Depends(get_cur
 
 @router.put("/{tag_id}", response_model=TagPublic, response_description="Tag updated", status_code=status.HTTP_200_OK)
 def update_tag(tag_id: int, tag_update: TagUpdate, repository=Depends(get_tag_repository),
-               user=Depends(get_current_user)):
+               _editor: User = Depends(require_editor)):
     updated_tag = repository.update_tag(tag_id, name=tag_update.name)
 
     if not updated_tag:
@@ -64,7 +65,7 @@ def update_tag(tag_id: int, tag_update: TagUpdate, repository=Depends(get_tag_re
 
 
 @router.delete("/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tag(tag_id: int, repository=Depends(get_tag_repository), user=Depends(get_current_user)):
+def delete_tag(tag_id: int, repository=Depends(get_tag_repository), _admin: User = Depends(require_admin)):
     deleted_tag = repository.delete_tag(tag_id)
 
     if not deleted_tag:

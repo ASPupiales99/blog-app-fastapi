@@ -6,7 +6,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session, selectinload, joinedload
 
 from app.core.db import get_db
-from app.model import PostOrm, TagOrm
+from app.model import PostOrm, TagOrm, User
 from app.repository import AuthorRepository, TagRepository
 from app.repository.author import get_author_repository
 from app.repository.tag import get_tag_repository
@@ -62,11 +62,11 @@ class PostRepository:
 
         return self.db.execute(post_list).scalars().all()
 
-    def create_post(self, title: str, content: str, author: Optional[dict], tags: List[dict],
+    def create_post(self, title: str, content: str, author: Optional[User], tags: List[dict],
                     image_url: str) -> PostOrm:
         author_obj = None
         if author:
-            author_obj = self.author_repository.ensure_author(author['username'], author['email'])
+            author_obj = self.author_repository.ensure_author(author.full_name, author.email)
 
         post = PostOrm(title=title, content=content, author=author_obj, image_url=image_url)
 
