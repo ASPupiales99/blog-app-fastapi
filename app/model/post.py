@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 
@@ -9,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.db import Base
 
 if TYPE_CHECKING:
-    from .author import AuthorOrm
+    from .user import User
     from .tag import TagOrm
 
 post_tags = Table(
@@ -32,8 +30,12 @@ class PostOrm(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow)
 
-    author_id: Mapped[Optional[int]] = mapped_column(ForeignKey("authors.id"))
-    author: Mapped[Optional["AuthorOrm"]] = relationship(back_populates="posts")
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"))
+    user: Mapped[Optional["User"]] = relationship(back_populates="posts")
+
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"), nullable=True,
+                                             index=True)
+    category = relationship("CategoryOrm", back_populates="posts")
 
     tags: Mapped[List["TagOrm"]] = relationship(secondary=post_tags, back_populates="posts", lazy="selectin",
                                                 passive_deletes=True)

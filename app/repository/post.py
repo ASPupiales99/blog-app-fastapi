@@ -7,15 +7,13 @@ from sqlalchemy.orm import Session, selectinload, joinedload
 
 from app.core.db import get_db
 from app.model import PostOrm, TagOrm, User
-from app.repository import AuthorRepository, TagRepository
-from app.repository.author import get_author_repository
+from app.repository import TagRepository
 from app.repository.tag import get_tag_repository
 
 
 class PostRepository:
-    def __init__(self, db: Session, author_repository: AuthorRepository, tag_repository: TagRepository):
+    def __init__(self, db: Session, tag_repository: TagRepository):
         self.db = db
-        self.author_repository = author_repository
         self.tag_repository = tag_repository
 
     def get_post(self, post_id: int) -> Optional[PostOrm]:
@@ -56,19 +54,23 @@ class PostRepository:
         post_list = (
             select(PostOrm).options(
                 selectinload(PostOrm.tags),
-                joinedload(PostOrm.author)
+                joinedload(PostOrm.user)
             ).where(PostOrm.tags.any(func.lower(TagOrm.name).in_(normalized_tag_names))).order_by(PostOrm.id.asc())
         )
 
         return self.db.execute(post_list).scalars().all()
 
-    def create_post(self, title: str, content: str, author: Optional[User], tags: List[dict],
-                    image_url: str) -> PostOrm:
-        author_obj = None
-        if author:
-            author_obj = self.author_repository.ensure_author(author.full_name, author.email)
+    def create_post(
+            self,
+            title: str,
+            content: str,
+            user: User,
+            tags: List[dict],
+            image_url: str,
+            category_id: Optional[int]
+    ) -> PostOrm:
 
-        post = PostOrm(title=title, content=content, author=author_obj, image_url=image_url)
+        post = PostOrm(title=title, content=content, user=user, image_url=image_url, category_id=category_id)
 
         for tag in tags:
             names = tag['name'].split(',')
@@ -96,6 +98,5 @@ class PostRepository:
 
 
 def get_post_repository(db: Session = Depends(get_db),
-                        author_repository: AuthorRepository = Depends(get_author_repository),
                         tag_repository: TagRepository = Depends(get_tag_repository)) -> PostRepository:
-    return PostRepository(db, author_repository, tag_repository)
+    return PostRepository(db, tag_repository)

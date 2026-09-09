@@ -5,16 +5,18 @@ from typing import Optional, List, Annotated
 from fastapi import Form
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
-from .author import Author
+from .category import CategoryPublic
 from .tag import Tag
+from ..auth.schemas import UserPublic
 
 
 class PostBase(BaseModel):
     title: str
     content: str
     tags: Optional[List[Tag]] = Field(default_factory=list)
-    author: Optional[Author] = None
+    user: Optional[UserPublic] = None
     image_url: Optional[str] = None
+    category: Optional[CategoryPublic] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -37,6 +39,7 @@ class PostCreate(BaseModel):
             "This is the updated content of the post."
         ]
     )
+    category_id: Optional[int] = None
     tags: List["Tag"] = Field(
         default_factory=list,
         description="List of tags associated with the post")
@@ -53,10 +56,11 @@ class PostCreate(BaseModel):
             cls,
             title: Annotated[str, Form(min_length=3)],
             content: Annotated[str, Form(min_length=10)],
+            category_id: Annotated[int, Form(ge=1)],
             tags: Annotated[Optional[List[str]], Form()] = None
     ):
         tag_objs = [Tag(name=tag) for tag in (tags or [])]
-        return cls(title=title, content=content, tags=tag_objs)
+        return cls(title=title, content=content, category_id=category_id, tags=tag_objs)
 
 
 class PostUpdate(BaseModel):

@@ -120,9 +120,13 @@ def create_post(
 
         image_url = saved["url"] if saved else None
 
-        new_post = repository.create_post(title=post.title, content=(post.content if post.content else ""),
-                                          author=editor,
-                                          tags=[tag.model_dump() for tag in post.tags], image_url=image_url)
+        new_post = repository.create_post(
+            title=post.title, content=(post.content if post.content else ""),
+            user=editor,
+            tags=[tag.model_dump() for tag in post.tags],
+            image_url=image_url,
+            category_id=post.category_id
+        )
         repository.db.commit()
         repository.db.refresh(new_post)
         return new_post
