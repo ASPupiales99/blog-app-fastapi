@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.auth.router import router as auth_router
 from app.core.db import Base, engine
+from app.core.middleware import register_middleware
 from app.router.category import router as category_router
 from app.router.post import router as post_router
 from app.router.tag import router as tag_router
@@ -17,8 +18,13 @@ MEDIA_DIR = "app/media"
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Mini Blog", swagger_ui_parameters={"persistAuthorization": True})
+    app = FastAPI(
+        title="Mini Blog",
+        swagger_ui_parameters={"persistAuthorization": True}
+    )
     Base.metadata.create_all(bind=engine)
+
+    register_middleware(app)
 
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(post_router)
