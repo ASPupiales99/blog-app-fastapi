@@ -9,6 +9,7 @@ from app.core.db import get_db
 from app.model import PostOrm, TagOrm, User
 from app.repository import TagRepository
 from app.repository.tag import get_tag_repository
+from app.utils.slugify_util import ensure_unique_slug
 
 
 class PostRepository:
@@ -18,6 +19,10 @@ class PostRepository:
 
     def get_post(self, post_id: int) -> Optional[PostOrm]:
         post_find = select(PostOrm).where(PostOrm.id == post_id)
+        return self.db.execute(post_find).scalar_one_or_none()
+
+    def get_by_slug(self, slug: str) -> Optional[PostOrm]:
+        post_find = select(PostOrm).where(PostOrm.slug == slug)
         return self.db.execute(post_find).scalar_one_or_none()
 
     def search_posts(self, query: Optional[str], order_by: str, direction: str, page: int, per_page: int) -> Tuple[
@@ -69,8 +74,17 @@ class PostRepository:
             image_url: str,
             category_id: Optional[int]
     ) -> PostOrm:
+        
+        unique_slug = ensure_unique_slug(self.db, title)
 
-        post = PostOrm(title=title, content=content, user=user, image_url=image_url, category_id=category_id)
+        post = PostOrm(
+            title=title,
+            content=content,
+            user=user,
+            image_url=image_url,
+            category_id=category_id,
+            slug=unique_slug
+        )
 
         for tag in tags:
             names = tag['name'].split(',')

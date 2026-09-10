@@ -64,6 +64,26 @@ def list_posts(
     )
 
 
+@router.get("/{slug}", response_model=Union[PostPublic, PostSummary], response_description="Post details")
+def get_post_by_slug(
+        slug: str,
+        include_content: bool | None = Query(
+            default=True,
+            description="Whether to include the content of the post"
+        ),
+        repository: PostRepository = Depends(get_post_repository)
+):
+    post = repository.get_by_slug(slug)
+
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    if include_content:
+        return PostPublic.model_validate(post, from_attributes=True)
+
+    return PostSummary.model_validate(post, from_attributes=True)
+
+
 @router.get("/by-tags", response_model=List[PostPublic], response_description="List of posts filtered by tags")
 def get_posts_by_tags(
         tags: List[str] = Query(
